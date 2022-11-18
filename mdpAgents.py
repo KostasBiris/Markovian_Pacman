@@ -44,6 +44,8 @@ class MDPAgent(Agent):
         name = "Pacman"
         self.valueIterationStart = 0
         self.valueIterationDictionary = {}
+        self.lastAction = Directions.STOP
+        self.visitedPos = []
 
     # Gets run after an MDPAgent object is created and once there is
     # game state to access.
@@ -52,12 +54,22 @@ class MDPAgent(Agent):
         print "I'm at:"
         print api.whereAmI(state)
         self.gameMap(state)
+        self.visitedPos = []
 
     # This is what gets run in between multiple games
     def final(self, state):
         print "Looks like the game just ended!"
         self.valueIterationStart = 0
         self.valueIterationDictionary = {}
+        self.visitedPos = []
+
+    def addLastPosition(self, lastAction, pacmanPos):
+        if lastAction == Directions.STOP: self.visitedPos.append(pacmanPos)
+        if lastAction == Directions.NORTH: self.visitedPos.append(pacmanPos[1] + 1)
+        if lastAction == Directions.SOUTH: self.visitedPos.append(pacmanPos[1] - 1)
+        if lastAction == Directions.EAST: self.visitedPos.append(pacmanPos[0] + 1)
+        if lastAction == Directions.WEST: self.visitedPos.append(pacmanPos[0] - 1)
+
 
     def gameMap(self, state):
         # Map of all static objects, namely food, capsules and walls.
@@ -126,12 +138,12 @@ class MDPAgent(Agent):
         # and calculates utlity of the coordinates using bellman equation
         for i in range(len(self.allowedPos)):
 
-            if self.allowedPos[i] in foodPos:
-                reward = 1
-            elif self.allowedPos[i] in capsulePos:
-                reward = 2
-            elif self.allowedPos[i] in ghostPos:
-                reward = -4
+            if self.allowedPos[i] in foodPos: reward = 1
+            if self.allowedPos[i] in capsulePos: reward = 2
+            if self.allowedPos[i] in ghostPos: reward = -80
+            if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -5
+            if self.allowedPos[i] in self.visitedPos: reward = -10
+
 
             # East Coordinates
             if (self.allowedPos[i][0] + 1, self.allowedPos[i][1]) not in wallPos:
@@ -203,6 +215,8 @@ class MDPAgent(Agent):
                 # Add the position West of the Ghost to the Ghost Range
                 ghostsRange.append((ghostPos[0] - 1, ghostPos[1]))
 
+        ghostsRange = list(dict.fromkeys(ghostsRange))
+
         return ghostsRange
 
     # For now I just move randomly
@@ -241,7 +255,7 @@ class MDPAgent(Agent):
         if Directions.WEST in legal: westNeighbour = (pacmanPos[0] - 1, pacmanPos[1])
 
 
-        maxUtility = 0
+        maxUtility = 0 - 1000
         makeMove = 'null'
 
         northUtility = self.valueIterationDictionary[northNeighbour]
@@ -258,27 +272,33 @@ class MDPAgent(Agent):
             if north > maxUtility:
                 maxUtility = north
                 makeMove = Directions.NORTH
+                self.addLastPosition(makeMove,pacmanPos)
 
         if Directions.SOUTH in legal:
             south = ((0.8 * southUtility) + (0.1 * westUtility) + (0.1 * eastUtility))
             if south > maxUtility:
                 maxUtility = south
                 makeMove = Directions.SOUTH
-                    
+                self.addLastPosition(makeMove, pacmanPos)
+
         if Directions.EAST in legal:
             east = ((0.8 * eastUtility) + (0.1 * northUtility) + (0.1 * southUtility))
             if east > maxUtility:
                 maxUtility = east
                 makeMove = Directions.EAST
+                self.addLastPosition(makeMove, pacmanPos)
 
         if Directions.WEST in legal:
             west = ((0.8 * westUtility) + (0.1 * northUtility) + (0.1 * southUtility))
             if west > maxUtility:
                 maxUtility = west
                 makeMove = Directions.WEST
+                self.addLastPosition(makeMove, pacmanPos)
 
         if makeMove != 'null':
             self.valueIterationStart = 0
             return api.makeMove(makeMove, legal)
+            self.addLastPosition(makeMove, pacmanPos)
+
         else:
             print "error"
