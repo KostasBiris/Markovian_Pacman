@@ -1,5 +1,3 @@
-
-
 # mdpAgents.py
 # parsons/20-nov-2017
 #
@@ -146,30 +144,22 @@ class MDPAgent(Agent):
             if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -5
             if self.allowedPos[i] in self.visitedPos: reward = -10
 
-
-            # East Coordinates
-            if (self.allowedPos[i][0] + 1, self.allowedPos[i][1]) not in wallPos:
-                eastNeighbour = (self.allowedPos[i][0] + 1, self.allowedPos[i][1])
-            else:
-                eastNeighbour = self.allowedPos[i]
-
-            # West Coordinates
-            if (self.allowedPos[i][0] - 1, self.allowedPos[i][1]) not in wallPos:
-                westNeighbour = (self.allowedPos[i][0] - 1, self.allowedPos[i][1])
-            else:
-                westNeighbour = self.allowedPos[i]
+            northNeighbour = southNeighbour = eastNeighbour = westNeighbour = eastNeighbour = self.allowedPos[i]
 
             # North Coordinates
             if (self.allowedPos[i][0], self.allowedPos[i][1] + 1) not in wallPos:
                 northNeighbour = (self.allowedPos[i][0], self.allowedPos[i][1] + 1)
-            else:
-                northNeighbour = self.allowedPos[i]
-
             # South Coordinates
             if (self.allowedPos[i][0], self.allowedPos[i][1] - 1) not in wallPos:
                 southNeighbour = (self.allowedPos[i][0], self.allowedPos[i][1] - 1)
-            else:
-                southNeighbour = self.allowedPos[i]
+            # East Coordinates
+            if (self.allowedPos[i][0] + 1, self.allowedPos[i][1]) not in wallPos:
+                eastNeighbour = (self.allowedPos[i][0] + 1, self.allowedPos[i][1])
+            # West Coordinates
+            if (self.allowedPos[i][0] - 1, self.allowedPos[i][1]) not in wallPos:
+                westNeighbour = (self.allowedPos[i][0] - 1, self.allowedPos[i][1])
+
+
 
             # Bellman Equation. Calculating utility from the last iterated values
             northNeighbourValue = (
