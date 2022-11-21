@@ -1,3 +1,5 @@
+
+
 # mdpAgents.py
 # parsons/20-nov-2017
 #
@@ -214,6 +216,16 @@ class MDPAgent(Agent):
                 ghostsRange.append((ghostPos[0] + 1, ghostPos[1]))
                 # Add the position West of the Ghost to the Ghost Range
                 ghostsRange.append((ghostPos[0] - 1, ghostPos[1]))
+
+                # Add the position North-West of the Ghost to the Ghost Range
+                ghostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
+                # Add the position North-East of the Ghost to the Ghost Range
+                ghostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
+                # Add the position South-West of the Ghost to the Ghost Range
+                ghostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
+                # Add the position South-East of the Ghost to the Ghost Range
+                ghostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
+
 
         ghostsRange = list(dict.fromkeys(ghostsRange))
 
