@@ -122,6 +122,7 @@ class MDPAgent(Agent):
             if self.allowedPos[i] in capsulePos: self.valuesMap[self.allowedPos[i]] = 2
 
     def valueIteration(self, state, ghostPos):
+        pacmanPos = api.whereAmI(state)
         foodPos = api.food(state)
         capsulePos = api.capsules(state)
         wallPos = api.walls(state)
@@ -143,6 +144,49 @@ class MDPAgent(Agent):
             if self.allowedPos[i] in ghostPos: reward = -80
             if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -5
             if self.allowedPos[i] in self.visitedPos: reward = -10
+
+            ''' Check Front '''
+            # If ghost in front of pacman as he moves North of the corridor
+            if self.allowedPos[i] == pacmanPos[1] + 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.NORTH, state): reward = -40
+
+            # If ghost in front of pacman as he moves South of the corridor
+            if self.allowedPos[i] == pacmanPos[1] - 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = -40
+
+            # If ghost in front of pacman as he moves East of the corridor
+            if self.allowedPos[i] == pacmanPos[0] + 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.EAST, state): reward = -40
+
+            # If ghost in front of pacman as he moves West of the corridor
+            if self.allowedPos[i] == pacmanPos[0] - 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.WEST, state): reward = -40
+
+            ''' Check Back '''
+            # If ghost behind of pacman as he moves North of the corridor
+            if self.allowedPos[i] == pacmanPos[1] + 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = 40
+
+            # If ghost behind of pacman as he moves South of the corridor
+            if self.allowedPos[i] == pacmanPos[1] - 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.NORTH, state): reward = 40
+
+            # If ghost behind of pacman as he moves East of the corridor
+            if self.allowedPos[i] == pacmanPos[0] + 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.WEST, state): reward = 40
+
+            # If ghost behind of pacman as he moves West of the corridor
+            if self.allowedPos[i] == pacmanPos[0] - 1:
+                for ghost in ghostPos:
+                    if api.inFront(ghost, Directions.EAST, state): reward = 40
+
 
             northNeighbour = southNeighbour = eastNeighbour = westNeighbour = eastNeighbour = self.allowedPos[i]
 
