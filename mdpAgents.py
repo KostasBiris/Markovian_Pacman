@@ -121,7 +121,7 @@ class MDPAgent(Agent):
             if self.allowedPos[i] in foodPos: self.valuesMap[self.allowedPos[i]] = 1
             if self.allowedPos[i] in capsulePos: self.valuesMap[self.allowedPos[i]] = 2
 
-    def valueIteration(self, state, ghostPos):
+    def valueIteration(self, state, ghostsRange):
         pacmanPos = api.whereAmI(state)
         foodPos = api.food(state)
         capsulePos = api.capsules(state)
@@ -141,31 +141,37 @@ class MDPAgent(Agent):
 
             if self.allowedPos[i] in foodPos: reward = 2
             if self.allowedPos[i] in capsulePos: reward = 1
-            if self.allowedPos[i] in ghostPos: reward = -80
+            if self.allowedPos[i] in ghostsRange[0]:
+                reward = -80
+
+            if self.allowedPos[i] in ghostsRange[1]:
+                reward = 3
+
+            if self.allowedPos[i] in ghostsRange[1]: reward = 10
             if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -30
-            if self.allowedPos[i] in self.visitedPos: reward = -10
+            if self.allowedPos[i] in self.visitedPos: reward = -40
 
 
             ''' Check Parallel Corridors for leftover Food '''
             # If food in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.NORTH, state): reward = 3
+                    if api.atSide(self.food, Directions.NORTH, state): reward = 20
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.SOUTH, state): reward = 3
+                    if api.atSide(self.food, Directions.SOUTH, state): reward = 20
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.EAST, state): reward = 3
+                    if api.atSide(self.food, Directions.EAST, state): reward = 20
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.WEST, state): reward = 3
+                    if api.atSide(self.food, Directions.WEST, state): reward = 20
 
 
 
@@ -173,66 +179,66 @@ class MDPAgent(Agent):
             ''' Check Front for Ghosts'''
             # If ghost in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.NORTH, state): reward = -80
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = -80
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.EAST, state): reward = -80
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.WEST, state): reward = -80
 
             ''' Check Back for Ghosts '''
             # If ghost behind of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = -80
 
             # If ghost behind of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.NORTH, state): reward = -80
 
             # If ghost behind of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.WEST, state): reward = -80
 
             # If ghost behind of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -60
+                for ghost in ghostsRange[0]:
+                    if api.inFront(ghost, Directions.EAST, state): reward = -80
 
 
             ''' Check Parallel Corridors for Ghosts '''
             # If ghost in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.NORTH, state): reward = -50
+                for ghost in ghostsRange[0]:
+                    if api.atSide(ghost, Directions.NORTH, state): reward = -80
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.SOUTH, state): reward = -50
+                for ghost in ghostsRange[0]:
+                    if api.atSide(ghost, Directions.SOUTH, state): reward = -80
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.EAST, state): reward = -50
+                for ghost in ghostsRange[0]:
+                    if api.atSide(ghost, Directions.EAST, state): reward = -80
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.WEST, state): reward = -50
+                for ghost in ghostsRange[0]:
+                    if api.atSide(ghost, Directions.WEST, state): reward = -80
 
 
 
@@ -275,7 +281,8 @@ class MDPAgent(Agent):
 
     def findGhostsRange(self, state):
         ghoststates = api.ghostStates(state)
-        ghostsRange = []
+        hostileGhostsRange = []
+        scaredGhostsRange = []
         # Making a list of ghost coordinates which are still active and not edible
         # So these ghost coordinates will get negative value during iteration
         for i in range(len(ghoststates)):
@@ -286,32 +293,50 @@ class MDPAgent(Agent):
             # Current ghost position
             ghostPos = (int(ghostX), int(ghostY))
 
-            if ghostPos in self.allowedPos and ghoststates[i][1] == 0:
+            if ghostPos in self.allowedPos:
                 # Add Current Ghost Position to the Ghost Range
-                ghostsRange.append(ghostPos)
+                # hostileGhostsRange.append(ghostPos)
+                if ghoststates[i][1] == 0: hostileGhostsRange.append(ghostPos)
+                else: scaredGhostsRange.append(ghostPos)
 
                 # Add the position North of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0], ghostPos[1] + 1))
+                # hostileGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
+                else: scaredGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
                 # Add the position South of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0], ghostPos[1] - 1))
+                # hostileGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
+                else: scaredGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
                 # Add the position East of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] + 1, ghostPos[1]))
+                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
+                else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
                 # Add the position West of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] - 1, ghostPos[1]))
+                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
+                else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
 
                 # Add the position North-West of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
+                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
+                else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
                 # Add the position North-East of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
+                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
+                else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
                 # Add the position South-West of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
+                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
+                else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
                 # Add the position South-East of the Ghost to the Ghost Range
-                ghostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
+                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
+                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
+                else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
 
+        hostileGhostsRange = list(dict.fromkeys(hostileGhostsRange))
+        scaredGhostsRange = list(dict.fromkeys(scaredGhostsRange))
 
-        ghostsRange = list(dict.fromkeys(ghostsRange))
-
-        return ghostsRange
+        return [hostileGhostsRange,scaredGhostsRange]
 
     # For now I just move randomly
     def getAction(self, state):
