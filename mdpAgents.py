@@ -34,7 +34,7 @@ import api
 import random
 import game
 import util
-
+import time
 
 class MDPAgent(Agent):
 
@@ -139,45 +139,33 @@ class MDPAgent(Agent):
         # and calculates utlity of the coordinates using bellman equation
         for i in range(len(self.allowedPos)):
 
-            if self.allowedPos[i] in foodPos: reward = 1
-            if self.allowedPos[i] in capsulePos: reward = 2
+            if self.allowedPos[i] in foodPos: reward = 2
+            if self.allowedPos[i] in capsulePos: reward = 1
             if self.allowedPos[i] in ghostPos: reward = -80
-            if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -5
+            if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -30
             if self.allowedPos[i] in self.visitedPos: reward = -10
 
-            '''
-                SMALL GRID
-            '''
-            if len(self.allowedPos) < 20:
-                if self.allowedPos[i] in api.corners(state) and self.allowedPos[i] in api.food(state): reward = 6
-                if self.allowedPos[i] not in api.corners(state) and self.allowedPos[i] in api.food(state) and len(api.food(state)) != 1: reward = -4
-
-
-
-            '''
-                MEDIUM CLASSIC GRID
-            '''
 
             ''' Check Parallel Corridors for leftover Food '''
             # If food in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.NORTH, state): reward = 2
+                    if api.atSide(self.food, Directions.NORTH, state): reward = 3
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.SOUTH, state): reward = 2
+                    if api.atSide(self.food, Directions.SOUTH, state): reward = 3
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.EAST, state): reward = 2
+                    if api.atSide(self.food, Directions.EAST, state): reward = 3
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
                 for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.WEST, state): reward = 2
+                    if api.atSide(self.food, Directions.WEST, state): reward = 3
 
 
 
@@ -186,67 +174,65 @@ class MDPAgent(Agent):
             # If ghost in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -40
+                    if api.inFront(ghost, Directions.NORTH, state): reward = -60
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -40
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = -60
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -40
+                    if api.inFront(ghost, Directions.EAST, state): reward = -60
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -40
+                    if api.inFront(ghost, Directions.WEST, state): reward = -60
 
             ''' Check Back for Ghosts '''
             # If ghost behind of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -40
+                    if api.inFront(ghost, Directions.SOUTH, state): reward = -60
 
             # If ghost behind of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -40
+                    if api.inFront(ghost, Directions.NORTH, state): reward = -60
 
             # If ghost behind of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -40
+                    if api.inFront(ghost, Directions.WEST, state): reward = -60
 
             # If ghost behind of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
                 for ghost in ghostPos:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -40
+                    if api.inFront(ghost, Directions.EAST, state): reward = -60
 
 
             ''' Check Parallel Corridors for Ghosts '''
             # If ghost in front of pacman as he moves North of the corridor
             if self.allowedPos[i] == pacmanPos[1] + 1:
                 for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.NORTH, state): reward = -30
+                    if api.atSide(ghost, Directions.NORTH, state): reward = -50
 
             # If ghost in front of pacman as he moves South of the corridor
             if self.allowedPos[i] == pacmanPos[1] - 1:
                 for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.SOUTH, state): reward = -30
+                    if api.atSide(ghost, Directions.SOUTH, state): reward = -50
 
             # If ghost in front of pacman as he moves East of the corridor
             if self.allowedPos[i] == pacmanPos[0] + 1:
                 for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.EAST, state): reward = -30
+                    if api.atSide(ghost, Directions.EAST, state): reward = -50
 
             # If ghost in front of pacman as he moves West of the corridor
             if self.allowedPos[i] == pacmanPos[0] - 1:
                 for ghost in ghostPos:
-                    if api.atSide(ghost, Directions.WEST, state): reward = -30
-
-
+                    if api.atSide(ghost, Directions.WEST, state): reward = -50
 
 
 
