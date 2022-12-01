@@ -34,7 +34,8 @@ import api
 import random
 import game
 import util
-import time
+
+# Solution by Konstantinos Biris [k21187367]
 
 class MDPAgent(Agent):
 
@@ -61,14 +62,6 @@ class MDPAgent(Agent):
         print "Looks like the game just ended!"
         self.valueIterationStart = 0
         self.valueIterationDictionary = {}
-        self.visitedPos = []
-
-    def addLastPosition(self, lastAction, pacmanPos):
-        if lastAction == Directions.STOP: self.visitedPos.append(pacmanPos)
-        if lastAction == Directions.NORTH: self.visitedPos.append(pacmanPos[1] + 1)
-        if lastAction == Directions.SOUTH: self.visitedPos.append(pacmanPos[1] - 1)
-        if lastAction == Directions.EAST: self.visitedPos.append(pacmanPos[0] + 1)
-        if lastAction == Directions.WEST: self.visitedPos.append(pacmanPos[0] - 1)
 
 
     def gameMap(self, state):
@@ -84,182 +77,78 @@ class MDPAgent(Agent):
         wallPos = api.walls(state)
         mapCornerPos = api.corners(state)
 
+        # Get the size of the map
         biggestX = 0
         biggestY = 0
         for i in range(len(mapCornerPos)):
             if mapCornerPos[i][0] > biggestX: biggestX = mapCornerPos[i][0]
             if mapCornerPos[i][1] > biggestY: biggestY = mapCornerPos[i][1]
 
-        mapWidth = biggestX + 1
-        mapHeight = biggestY + 1
+        self.mapWidth = biggestX + 1
+        self.mapHeight = biggestY + 1
 
-        for i in range(mapWidth):
-            for j in range(mapHeight):
-                stageMap.append((i, j))
+        # Build a map containing all the positions and their values/rewards
+        for i in range(self.mapWidth):
+            for j in range(self.mapHeight):
+                if (i,j) not in wallPos:
+                    self.valuesMap[(i, j)] = 0
 
-        # Map of all positions that Pac Man is allowed to go to.
-        self.allowedPos = (tuple(set(stageMap) - set(wallPos)))
+        # Map of all positions that Pacman is allowed to go to.
+        self.allowedPos = self.valuesMap.keys()
 
-        ''' --- Initial Values assignment stage --- '''
-        for i in range(len(self.allowedPos)):
-            # Assign a value of 1 to positions/states with food.
-            if self.allowedPos[i] in foodPos: self.valuesMap[self.allowedPos[i]] = 1
+        # Initial Values assignment stage
+        for f in foodPos: self.valuesMap[f] = 10
+        for c in capsulePos: self.valuesMap[c] = 2
 
-            # Assign a value of 2 to positions/states with capsules. Capsules are more value
-            # since they give more score points and also allow Pac Man to eat ghosts.
-            if self.allowedPos[i] in capsulePos: self.valuesMap[self.allowedPos[i]] = 2
 
     def updateStaticObjValues(self, state):
         foodPos = api.food(state)
         capsulePos = api.capsules(state)
+        ghostsRange = self.findGhostsRange(state)
 
-        # Clear all previous values and make them equal to 0
-        for i in range(len(self.allowedPos)): self.valuesMap[self.allowedPos[i]] = 0
+        # Reset all the values
+        for k in self.valuesMap.keys(): self.valuesMap[k] = -1
 
-        # Assign the new values
-        for i in range(len(self.allowedPos)):
-            if self.allowedPos[i] in foodPos: self.valuesMap[self.allowedPos[i]] = 1
-            if self.allowedPos[i] in capsulePos: self.valuesMap[self.allowedPos[i]] = 2
+        # Assign a suitable value/reward to the position of each object
+        for f in foodPos: self.valuesMap[f] = 10
+        for c in capsulePos: self.valuesMap[c] = 2
+        for h in ghostsRange[0]: self.valuesMap[h] = -500
+        for s in ghostsRange[1]: self.valuesMap[s] = 200
 
     def valueIteration(self, state, ghostsRange):
-        pacmanPos = api.whereAmI(state)
-        foodPos = api.food(state)
-        capsulePos = api.capsules(state)
+
         wallPos = api.walls(state)
+        reward = -1  # value taken from lecture slides
+        gamma = 0.9  # value taken from lecture slides
 
-        reward = 0 - 0.04  # value taken from lecture slides
-        gamma = 0.8  # value taken from lecture slides
-
+        # make a copy of the current (old) value iteration dictonary to compare it withe the new one later on.
         if self.valueIterationStart == 0:
             self.valueIterationDictionary = self.valuesMap.copy()
             self.valueIterationStart = 1
         temp = self.valueIterationDictionary.copy()
 
-        # Assign rewards on the basis of objects on the map such as food, ghost and capsules
-        # and calculates utlity of the coordinates using bellman equation
-        for i in range(len(self.allowedPos)):
-
-            if self.allowedPos[i] in foodPos: reward = 2
-            if self.allowedPos[i] in capsulePos: reward = 1
-            if self.allowedPos[i] in ghostsRange[0]:
-                reward = -80
-
-            if self.allowedPos[i] in ghostsRange[1]:
-                reward = 3
-
-            if self.allowedPos[i] in ghostsRange[1]: reward = 10
-            if self.allowedPos[i] not in foodPos and self.allowedPos[i] not in capsulePos: reward = -30
-            if self.allowedPos[i] in self.visitedPos: reward = -40
-
-
-            ''' Check Parallel Corridors for leftover Food '''
-            # If food in front of pacman as he moves North of the corridor
-            if self.allowedPos[i] == pacmanPos[1] + 1:
-                for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.NORTH, state): reward = 20
-
-            # If ghost in front of pacman as he moves South of the corridor
-            if self.allowedPos[i] == pacmanPos[1] - 1:
-                for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.SOUTH, state): reward = 20
-
-            # If ghost in front of pacman as he moves East of the corridor
-            if self.allowedPos[i] == pacmanPos[0] + 1:
-                for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.EAST, state): reward = 20
-
-            # If ghost in front of pacman as he moves West of the corridor
-            if self.allowedPos[i] == pacmanPos[0] - 1:
-                for foodPos in foodPos:
-                    if api.atSide(self.food, Directions.WEST, state): reward = 20
-
-
-
-
-            ''' Check Front for Ghosts'''
-            # If ghost in front of pacman as he moves North of the corridor
-            if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -80
-
-            # If ghost in front of pacman as he moves South of the corridor
-            if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -80
-
-            # If ghost in front of pacman as he moves East of the corridor
-            if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -80
-
-            # If ghost in front of pacman as he moves West of the corridor
-            if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -80
-
-            ''' Check Back for Ghosts '''
-            # If ghost behind of pacman as he moves North of the corridor
-            if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.SOUTH, state): reward = -80
-
-            # If ghost behind of pacman as he moves South of the corridor
-            if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.NORTH, state): reward = -80
-
-            # If ghost behind of pacman as he moves East of the corridor
-            if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.WEST, state): reward = -80
-
-            # If ghost behind of pacman as he moves West of the corridor
-            if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.inFront(ghost, Directions.EAST, state): reward = -80
-
-
-            ''' Check Parallel Corridors for Ghosts '''
-            # If ghost in front of pacman as he moves North of the corridor
-            if self.allowedPos[i] == pacmanPos[1] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.atSide(ghost, Directions.NORTH, state): reward = -80
-
-            # If ghost in front of pacman as he moves South of the corridor
-            if self.allowedPos[i] == pacmanPos[1] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.atSide(ghost, Directions.SOUTH, state): reward = -80
-
-            # If ghost in front of pacman as he moves East of the corridor
-            if self.allowedPos[i] == pacmanPos[0] + 1:
-                for ghost in ghostsRange[0]:
-                    if api.atSide(ghost, Directions.EAST, state): reward = -80
-
-            # If ghost in front of pacman as he moves West of the corridor
-            if self.allowedPos[i] == pacmanPos[0] - 1:
-                for ghost in ghostsRange[0]:
-                    if api.atSide(ghost, Directions.WEST, state): reward = -80
-
-
-
-            northNeighbour = southNeighbour = eastNeighbour = westNeighbour = eastNeighbour = self.allowedPos[i]
+        # Assign rewards on the neighboring cells in order to calculate the utlity of their coordinates
+        # using the Bellman Equation later on.
+        for pos in self.allowedPos:
+            reward = self.valuesMap[pos]
+            northNeighbour = southNeighbour = eastNeighbour = westNeighbour = eastNeighbour = pos
 
             # North Coordinates
-            if (self.allowedPos[i][0], self.allowedPos[i][1] + 1) not in wallPos:
-                northNeighbour = (self.allowedPos[i][0], self.allowedPos[i][1] + 1)
+            if (pos[0], pos[1] + 1) not in wallPos:
+                northNeighbour = (pos[0], pos[1] + 1)
             # South Coordinates
-            if (self.allowedPos[i][0], self.allowedPos[i][1] - 1) not in wallPos:
-                southNeighbour = (self.allowedPos[i][0], self.allowedPos[i][1] - 1)
+            if (pos[0], pos[1] - 1) not in wallPos:
+                southNeighbour = (pos[0], pos[1] - 1)
             # East Coordinates
-            if (self.allowedPos[i][0] + 1, self.allowedPos[i][1]) not in wallPos:
-                eastNeighbour = (self.allowedPos[i][0] + 1, self.allowedPos[i][1])
+            if (pos[0] + 1, pos[1]) not in wallPos:
+                eastNeighbour = (pos[0] + 1, pos[1])
             # West Coordinates
-            if (self.allowedPos[i][0] - 1, self.allowedPos[i][1]) not in wallPos:
-                westNeighbour = (self.allowedPos[i][0] - 1, self.allowedPos[i][1])
+            if (pos[0] - 1, pos[1]) not in wallPos:
+                westNeighbour = (pos[0] - 1, pos[1])
 
 
 
-            # Bellman Equation. Calculating utility from the last iterated values
+            # Bellman Equation implementation. Find the utility from the last iterated values
             northNeighbourValue = (
                     (0.8 * temp[northNeighbour]) + (0.1 * temp[westNeighbour]) + (0.1 * temp[eastNeighbour]))
             eastNeighbourValue = (
@@ -273,18 +162,25 @@ class MDPAgent(Agent):
                     gamma * max(northNeighbourValue, eastNeighbourValue, southNeighbourValue, westNeighbourValue))
 
             # The iteration value is rounded off to 3 decimals
-            self.valueIterationDictionary[self.allowedPos[i]] = round(valueIteration, 3)
+            self.valueIterationDictionary[pos] = round(valueIteration, 3)
 
-        # This compares all the current value iteration dictionary and the previous one
+        # This compares the old value iteration dictionary and the new one
         stability = cmp(temp, self.valueIterationDictionary)
         return stability
 
+
+    # Find the Ghosts Range
+    # This includes the position of each ghost and their surrounding cells.
+    #
+    # We have two separate lists:
+    #   ghostsRange[0] has the ranges of all the Hostile Ghosts
+    #   ghostsRange[1] has the ranges of all the Scared Ghosts
     def findGhostsRange(self, state):
-        ghoststates = api.ghostStates(state)
+        ghoststates = api.ghostStatesWithTimes(state)
         hostileGhostsRange = []
         scaredGhostsRange = []
-        # Making a list of ghost coordinates which are still active and not edible
-        # So these ghost coordinates will get negative value during iteration
+
+        # Making a list of ghost coordinates and their surrounding cells
         for i in range(len(ghoststates)):
             # converting ghosts coordinates in integer
             ghostX = ghoststates[i][0][0]
@@ -295,50 +191,38 @@ class MDPAgent(Agent):
 
             if ghostPos in self.allowedPos:
                 # Add Current Ghost Position to the Ghost Range
-                # hostileGhostsRange.append(ghostPos)
-                if ghoststates[i][1] == 0: hostileGhostsRange.append(ghostPos)
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append(ghostPos)
                 else: scaredGhostsRange.append(ghostPos)
 
                 # Add the position North of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
                 else: scaredGhostsRange.append((ghostPos[0], ghostPos[1] + 1))
                 # Add the position South of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
                 else: scaredGhostsRange.append((ghostPos[0], ghostPos[1] - 1))
                 # Add the position East of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
                 else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1]))
                 # Add the position West of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
                 else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1]))
 
                 # Add the position North-West of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
                 else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1] + 1))
                 # Add the position North-East of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
                 else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1] + 1))
                 # Add the position South-West of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
                 else: scaredGhostsRange.append((ghostPos[0] - 1, ghostPos[1] - 1))
                 # Add the position South-East of the Ghost to the Ghost Range
-                # hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
-                if ghoststates[i][1] == 0: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
+                if ghoststates[i][1] <= 4: hostileGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
                 else: scaredGhostsRange.append((ghostPos[0] + 1, ghostPos[1] - 1))
-
-        hostileGhostsRange = list(dict.fromkeys(hostileGhostsRange))
-        scaredGhostsRange = list(dict.fromkeys(scaredGhostsRange))
 
         return [hostileGhostsRange,scaredGhostsRange]
 
-    # For now I just move randomly
+
     def getAction(self, state):
         # Get the actions we can try, and remove "STOP" if that is one of them.
         legal = api.legalActions(state)
@@ -360,7 +244,7 @@ class MDPAgent(Agent):
                 pass
                 break
 
-        # If the move is illegal, we keep the neighbor's position equal to Pac Mans current position
+        # If the move is illegal, we keep the neighbor's position equal to Pacmans current position
         # so that Pac Man won't try to go there
         eastNeighbour = westNeighbour = northNeighbour = southNeighbour = pacmanPos
 
@@ -374,7 +258,7 @@ class MDPAgent(Agent):
         if Directions.WEST in legal: westNeighbour = (pacmanPos[0] - 1, pacmanPos[1])
 
 
-        maxUtility = 0 - 1000
+        maxUtility = -1000
         makeMove = 'null'
 
         northUtility = self.valueIterationDictionary[northNeighbour]
@@ -391,33 +275,32 @@ class MDPAgent(Agent):
             if north > maxUtility:
                 maxUtility = north
                 makeMove = Directions.NORTH
-                self.addLastPosition(makeMove,pacmanPos)
 
         if Directions.SOUTH in legal:
             south = ((0.8 * southUtility) + (0.1 * westUtility) + (0.1 * eastUtility))
             if south > maxUtility:
                 maxUtility = south
                 makeMove = Directions.SOUTH
-                self.addLastPosition(makeMove, pacmanPos)
 
         if Directions.EAST in legal:
             east = ((0.8 * eastUtility) + (0.1 * northUtility) + (0.1 * southUtility))
             if east > maxUtility:
                 maxUtility = east
                 makeMove = Directions.EAST
-                self.addLastPosition(makeMove, pacmanPos)
 
         if Directions.WEST in legal:
             west = ((0.8 * westUtility) + (0.1 * northUtility) + (0.1 * southUtility))
             if west > maxUtility:
                 maxUtility = west
                 makeMove = Directions.WEST
-                self.addLastPosition(makeMove, pacmanPos)
 
         if makeMove != 'null':
             self.valueIterationStart = 0
             return api.makeMove(makeMove, legal)
-            self.addLastPosition(makeMove, pacmanPos)
 
+        # If Pacman gets surrounded he should stay still
+        # and accept his fate (otherwise Illegal Move Exception)
         else:
-            print "error"
+            makeMove = Directions.STOP
+            self.valueIterationStart = 0
+            return api.makeMove(makeMove, legal)
